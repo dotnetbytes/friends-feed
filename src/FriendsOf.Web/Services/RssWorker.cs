@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace FriendsOf.Web.Services;
+﻿namespace FriendsOf.Web.Services;
 
 public class RssWorker : IHostedService, IAsyncDisposable
 {
