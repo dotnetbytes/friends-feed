@@ -7,7 +7,8 @@ namespace FriendsOf.Web.Services
 {
     public class RssService
     {
-        private const string MasterFile = "./wwwroot/feed.xml";
+        private const string MasterFile = "./wwwroot/master.xml";
+        private const string FeedFile = "./wwwroot/feed.xml";
         private readonly IConfiguration _config;
 
         public RssService(IConfiguration config)
@@ -39,8 +40,14 @@ namespace FriendsOf.Web.Services
                 rss.Items = rss.Items.Union(feed.Items).GroupBy(i => i.Title.Text).Select(i => i.First()).OrderByDescending(i => i.PublishDate.Date);
             }
 
-            await using var writer = XmlWriter.Create(MasterFile);
-            rss.SaveAsAtom10(writer);
+            await using var masterWriter = XmlWriter.Create(MasterFile);
+            rss.SaveAsAtom10(masterWriter);
+            masterWriter.Close();
+
+            await using var feedWriter = XmlWriter.Create(FeedFile);
+            rss.Items = rss.Items.Take(10);
+            rss.SaveAsAtom10(feedWriter);
+            feedWriter.Close();
         }
 
         private static async Task<SyndicationFeed> DownloadFeed(string url)
