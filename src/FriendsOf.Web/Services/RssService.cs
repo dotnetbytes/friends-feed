@@ -37,7 +37,11 @@ namespace FriendsOf.Web.Services
                     //hack - also putting the authors Twitter handle in the copyright so that I can get to this field in a Logic App
                     item.Copyright = new TextSyndicationContent(feedConfig.Key);
                 }
-                rss.Items = rss.Items.Union(feed.Items).GroupBy(i => i.Title.Text).Select(i => i.First()).OrderByDescending(i => i.PublishDate.Date);
+                rss.Items = rss.Items
+                    .Union(feed.Items)
+                    .GroupBy(i => i.Title.Text)
+                    .Select(i => i.First())
+                    .OrderByDescending(i => i.PublishDate);
             }
 
             await using var masterWriter = XmlWriter.Create(MasterFile);
