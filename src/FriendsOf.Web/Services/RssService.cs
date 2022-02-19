@@ -2,6 +2,11 @@
 using System.ServiceModel.Syndication;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using FriendsOf.Web.Models;
+using Microsoft.Azure.Cosmos;
+
 
 namespace FriendsOf.Web.Services
 {
@@ -52,6 +57,30 @@ namespace FriendsOf.Web.Services
             rss.Items = rss.Items.Take(10);
             rss.SaveAsAtom10(feedWriter);
             feedWriter.Close();
+
+            await InsertPosts(rss.Items);
+        }
+
+        private async Task InsertPosts(IEnumerable<SyndicationItem> rssItems)
+        {
+            var keyVaultUrl = _config["KeyVaultUrl"];
+            var credential = new DefaultAzureCredential();
+            var secretClient = new SecretClient(new Uri(keyVaultUrl), credential);
+            var cosmosKey = await secretClient.GetSecretAsync("CosmosKey");
+
+            var cosmosEndpoint = _config["CosmosEndpoint"];
+            var cosmosDatabase = _config["CosmosDatabaseName"];
+            var cosmosContainer = _config["CosmosContainerName"];
+
+            var cosmosClient = new CosmosClient(cosmosEndpoint, cosmosKey.Value.Value);
+            var container = cosmosClient.GetContainer(cosmosDatabase, cosmosContainer);
+
+            foreach (var post in rssItems)
+            {
+                var postItem = PostModel.FromRssItem(post);
+
+                await container.CreateItemAsync(postItem, new PartitionKey(postItem.PostId));
+            }
         }
 
         private static async Task<SyndicationFeed> DownloadFeed(string url)
